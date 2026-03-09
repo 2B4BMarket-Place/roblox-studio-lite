@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roblox Studio Mobile</title>
+    <link rel="stylesheet" href="studio.css">
+    <link rel="icon" href="icon.png" type="image/png">
+</head>
+<body>
+    <div id="login-container" class="container active">
+        <div class="studio-logo">
+            <img src="icon.png" alt="Roblox Studio">
+            <h1>ROBLOX STUDIO</h1>
+            <p>Mobile Edition</p>
+        </div>
+        
+        <div class="login-form">
+            <input type="text" id="username" placeholder="Имя пользователя Roblox" autocomplete="off">
+            <input type="password" id="password" placeholder="Пароль" autocomplete="off">
+            <div class="captcha-container" id="captcha-container" style="display: none;">
+                <img id="captcha-image" src="">
+                <input type="text" id="captcha-input" placeholder="Введите код с картинки">
+            </div>
+            <div class="twofa-container" id="twofa-container" style="display: none;">
+                <input type="text" id="twofa-input" placeholder="6-значный код 2FA">
+            </div>
+            <button id="login-btn">ВОЙТИ В ROBLOX</button>
+            <div id="login-status" class="status"></div>
+        </div>
+    </div>
+
+    <div id="studio-container" class="container">
+        <div class="studio-header">
+            <img src="icon.png" class="header-icon">
+            <div class="header-title">Roblox Studio</div>
+            <div class="header-user" id="header-user"></div>
+        </div>
+
+        <div class="studio-toolbar">
+            <div class="toolbar-item" data-tab="explorer">Explorer</div>
+            <div class="toolbar-item" data-tab="properties">Properties</div>
+            <div class="toolbar-item" data-tab="view">View</div>
+            <div class="toolbar-item" data-tab="publish">Publish</div>
+        </div>
+
+        <div class="studio-main">
+            <div class="sidebar" id="sidebar">
+                <div class="explorer-panel active" id="explorer-panel">
+                    <div class="panel-header">Explorer <button id="refresh-explorer">⟳</button></div>
+                    <div class="explorer-tree" id="explorer-tree">
+                        <div class="tree-item" data-type="game">⏺ Game</div>
+                        <div class="tree-item" data-type="workspace" style="padding-left: 20px;">📁 Workspace</div>
+                        <div class="tree-item" style="padding-left: 40px;" data-type="part">🔲 Part</div>
+                        <div class="tree-item" style="padding-left: 40px;" data-type="part">🔲 Part</div>
+                        <div class="tree-item" data-type="players" style="padding-left: 20px;">👥 Players</div>
+                        <div class="tree-item" data-type="lighting" style="padding-left: 20px;">☀ Lighting</div>
+                    </div>
+                </div>
+                
+                <div class="properties-panel" id="properties-panel">
+                    <div class="panel-header">Properties</div>
+                    <div class="properties-content" id="properties-content">
+                        <div class="property-row">
+                            <span class="prop-name">Name</span>
+                            <input class="prop-value" value="Part" id="prop-name">
+                        </div>
+                        <div class="property-row">
+                            <span class="prop-name">Position</span>
+                            <input class="prop-value" value="0, 0, 0" id="prop-position">
+                        </div>
+                        <div class="property-row">
+                            <span class="prop-name">Size</span>
+                            <input class="prop-value" value="4, 1.2, 2" id="prop-size">
+                        </div>
+                        <div class="property-row">
+                            <span class="prop-name">Color</span>
+                            <input type="color" class="prop-value" value="#ff0000" id="prop-color">
+                        </div>
+                        <div class="property-row">
+                            <span class="prop-name">Material</span>
+                            <select class="prop-value" id="prop-material">
+                                <option>Plastic</option>
+                                <option>Wood</option>
+                                <option>Metal</option>
+                                <option>Glass</option>
+                                <option>Concrete</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="view-panel" id="view-panel">
+                    <div class="panel-header">View</div>
+                    <div class="view-options">
+                        <button class="view-btn" data-view="front">Front</button>
+                        <button class="view-btn" data-view="top">Top</button>
+                        <button class="view-btn" data-view="right">Right</button>
+                        <button class="view-btn" data-view="perspective">Perspective</button>
+                    </div>
+                    <div class="view-options">
+                        <button class="view-btn" id="toggle-grid">Show Grid</button>
+                        <button class="view-btn" id="toggle-axes">Show Axes</button>
+                    </div>
+                </div>
+                
+                <div class="publish-panel" id="publish-panel">
+                    <div class="panel-header">Publish to Roblox</div>
+                    <div class="publish-options">
+                        <button id="publish-new" class="publish-btn">📤 Publish New Game</button>
+                        <button id="publish-existing" class="publish-btn">📥 Update Existing</button>
+                        <button id="load-rbxl" class="publish-btn">📂 Load .rbxl File</button>
+                        <input type="file" id="rbxl-file-input" accept=".rbxl" style="display: none;">
+                        <div id="upload-progress" class="progress-bar" style="display: none;">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="viewport" id="viewport">
+                <canvas id="studio-canvas"></canvas>
+                <div class="viewport-overlay">
+                    <div class="coords-display" id="coords-display">X:0 Y:0 Z:0</div>
+                    <div class="object-count" id="object-count">Objects: 24</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="studio-footer">
+            <div class="footer-tabs">
+                <span class="footer-tab active">Model</span>
+                <span class="footer-tab">Terrain</span>
+                <span class="footer-tab">Animate</span>
+                <span class="footer-tab">Test</span>
+            </div>
+            <div class="footer-status" id="footer-status">Ready</div>
+        </div>
+    </div>
+
+    <script src="rbxl-parser.js"></script>
+    <script src="editor.js"></script>
+    <script src="api.js"></script>
+    <script src="studio.js"></script>
+</body>
+</html>
