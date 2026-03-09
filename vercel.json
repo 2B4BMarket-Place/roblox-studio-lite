@@ -1,26 +1,11 @@
 {
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.png",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "api/roblox.js",
-      "use": "@vercel/node"
+  "functions": {
+    "api/roblox.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "runtime": "nodejs24.x"
     }
-  ],
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
