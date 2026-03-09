@@ -633,4 +633,461 @@ class RobloxStudio {
                     <p>Процедурная генерация ландшафта</p>
                     <button onclick="studio.installPlugin('https://example.com/plugins/terrain-pro.js')">Установить</button>
                 </div>
-            </
+            </div>
+        `;
+        
+        document.body.appendChild(marketplace);
+    }
+
+    // 32. СОХРАНЕНИЕ В ОБЛАКО
+    async saveToCloud() {
+        const snapshot = {
+            objects: this.objects,
+            lighting: this.lighting,
+            camera: this.camera,
+            timestamp: new Date().toISOString()
+        };
+        
+        const response = await fetch('/api/apis/cloud/v2/saves', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': this.xcsrf,
+                'Cookie': `.ROBLOSECURITY=${this.cookie}`
+            },
+            body: JSON.stringify(snapshot)
+        });
+        
+        if (response.ok) {
+            this.showNotification('Сохранено в облако', 'success');
+        }
+    }
+
+    // 33. ЗАГРУЗКА ИЗ ОБЛАКА
+    async loadFromCloud(saveId) {
+        const response = await fetch('/api/apis/cloud/v2/saves/' + saveId, {
+            headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+        });
+        
+        const save = await response.json();
+        this.objects = save.objects;
+        this.lighting = save.lighting;
+        this.camera = save.camera;
+        
+        this.renderScene();
+        this.showNotification('Загружено из облака', 'success');
+    }
+
+    // 34. ИСТОРИЯ ВЕРСИЙ
+    async getVersionHistory() {
+        const response = await fetch(`/api/apis/universes/v1/${this.universeId}/places/${this.placeId}/versions`, {
+            headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+        });
+        
+        const versions = await response.json();
+        
+        const history = document.createElement('div');
+        history.className = 'version-history';
+        history.innerHTML = `
+            <h3>История версий</h3>
+            <div class="version-list">
+                ${versions.data.map(v => `
+                    <div class="version-item" onclick="studio.loadVersion('${v.version}')">
+                        <span>${new Date(v.created).toLocaleString()}</span>
+                        <span>${v.description || 'Без описания'}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        document.body.appendChild(history);
+    }
+
+    // 35. ОТКАТ К ВЕРСИИ
+    async loadVersion(version) {
+        const response = await fetch(`/api/assetdelivery/v1/asset?id=${this.placeId}&version=${version}`, {
+            headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+        });
+        
+        const rbxlData = await response.arrayBuffer();
+        this.parseRBXLFile(rbxlData);
+        this.showNotification('Версия загружена', 'success');
+    }
+
+    // 36. АНАЛИТИКА ИГРЫ
+    async getGameAnalytics() {
+        const response = await fetch(`/api/games/v1/games/${this.universeId}/analytics`, {
+            headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+        });
+        
+        const analytics = await response.json();
+        
+        const panel = document.createElement('div');
+        panel.className = 'analytics-panel';
+        panel.innerHTML = `
+            <h3>Аналитика игры</h3>
+            <div class="analytics-grid">
+                <div class="analytics-card">
+                    <span>Посещений сегодня</span>
+                    <span class="big-number">${analytics.visitsToday}</span>
+                </div>
+                <div class="analytics-card">
+                    <span>Лайки</span>
+                    <span class="big-number">${analytics.likes}</span>
+                </div>
+                <div class="analytics-card">
+                    <span>Избранное</span>
+                    <span class="big-number">${analytics.favorites}</span>
+                </div>
+                <div class="analytics-card">
+                    <span>Заработано</span>
+                    <span class="big-number">${analytics.robuxEarned} R$</span>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(panel);
+    }
+
+    // 37. МОНЕТИЗАЦИЯ
+    async setupMonetization() {
+        const response = await fetch('/api/apis/universes/v1/universes/' + this.universeId + '/monetization', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': this.xcsrf,
+                'Cookie': `.ROBLOSECURITY=${this.cookie}`
+            },
+            body: JSON.stringify({
+                price: 25, // Robux
+                developerProducts: [
+                    { name: 'VIP Pass', price: 100 },
+                    { name: '1000 Coins', price: 50 }
+                ]
+            })
+        });
+        
+        if (response.ok) {
+            this.showNotification('Монетизация настроена', 'success');
+        }
+    }
+
+    // 38. ЛОКАЛИЗАЦИЯ
+    async setupLocalization() {
+        const languages = ['ru', 'en', 'es', 'fr', 'de', 'pt', 'zh'];
+        
+        languages.forEach(async lang => {
+            await fetch('/api/apis/universes/v1/universes/' + this.universeId + '/localization', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': this.xcsrf,
+                    'Cookie': `.ROBLOSECURITY=${this.cookie}`
+                },
+                body: JSON.stringify({
+                    language: lang,
+                    autoTranslate: true
+                })
+            });
+        });
+        
+        this.showNotification('Локализация настроена', 'success');
+    }
+
+    // 39. СОЦИАЛЬНЫЕ ФУНКЦИИ
+    async shareToSocial(platform) {
+        const gameUrl = `https://www.roblox.com/games/${this.placeId}`;
+        
+        switch(platform) {
+            case 'twitter':
+                window.open(`https://twitter.com/intent/tweet?text=Check out my game on Roblox!&url=${gameUrl}`);
+                break;
+            case 'facebook':
+                window.open(`https://www.facebook.com/sharer/sharer.php?u=${gameUrl}`);
+                break;
+            case 'discord':
+                navigator.clipboard.writeText(gameUrl);
+                this.showNotification('Ссылка скопирована', 'success');
+                break;
+        }
+    }
+
+    // 40. ГЛОБАЛЬНЫЙ ПОИСК
+    async globalSearch(query) {
+        const endpoints = [
+            `/api/catalog/v1/search/items?keyword=${query}&limit=10`,
+            `/api/users/v1/users/search?keyword=${query}&limit=10`,
+            `/api/groups/v1/groups/search?keyword=${query}&limit=10`
+        ];
+        
+        const results = await Promise.all(
+            endpoints.map(url => 
+                fetch(url, { headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` } })
+                    .then(r => r.json())
+            )
+        );
+        
+        this.showSearchResults({
+            assets: results[0].data,
+            users: results[1].data,
+            groups: results[2].data
+        });
+    }
+
+    // 41. БЭКАП ПРОЕКТА
+    backupProject() {
+        const backup = {
+            version: this.version,
+            user: this.user,
+            objects: this.objects,
+            scripts: this.scripts,
+            terrain: this.terrain,
+            lighting: this.lighting,
+            settings: {
+                grid: this.grid,
+                camera: this.camera,
+                theme: this.theme
+            },
+            timestamp: new Date().toISOString()
+        };
+        
+        const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_${Date.now()}.rbxmbackup`;
+        a.click();
+        
+        this.showNotification('Бэкап создан', 'success');
+    }
+
+    // 42. ВОССТАНОВЛЕНИЕ ИЗ БЭКАПА
+    restoreFromBackup(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const backup = JSON.parse(e.target.result);
+            
+            if (backup.version === this.version) {
+                this.objects = backup.objects;
+                this.scripts = backup.scripts;
+                this.terrain = backup.terrain;
+                this.lighting = backup.lighting;
+                
+                this.renderScene();
+                this.showNotification('Проект восстановлен', 'success');
+            } else {
+                this.showError('Несовместимая версия бэкапа');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    // 43. ЭКСПОРТ СТАТИСТИКИ
+    exportStatistics() {
+        const stats = {
+            objectCount: this.objects.length,
+            scriptCount: Object.keys(this.scripts).length,
+            terrainSize: Object.keys(this.terrain).length,
+            lastSaved: new Date().toISOString(),
+            totalEdits: this.editCount || 0
+        };
+        
+        const csv = Object.entries(stats)
+            .map(([key, value]) => `${key},${value}`)
+            .join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'statistics.csv';
+        a.click();
+    }
+
+    // 44. РЕЖИМ ПРЕЗЕНТАЦИИ
+    presentationMode() {
+        document.body.classList.add('presentation-mode');
+        
+        // Скрываем интерфейс
+        document.querySelectorAll('.studio-header, .studio-toolbar, .sidebar, .studio-footer')
+            .forEach(el => el.style.display = 'none');
+        
+        // Разворачиваем вьюпорт
+        document.querySelector('.viewport').style.width = '100%';
+        
+        // Добавляем элементы управления
+        const controls = document.createElement('div');
+        controls.className = 'presentation-controls';
+        controls.innerHTML = `
+            <button onclick="studio.exitPresentation()">Выход</button>
+            <button onclick="studio.nextView()">Далее</button>
+            <button onclick="studio.prevView()">Назад</button>
+        `;
+        document.body.appendChild(controls);
+    }
+
+    // 45. ЗАПИСЬ ВИДЕО
+    async recordVideo() {
+        const stream = document.querySelector('canvas').captureStream(30);
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+        
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'studio_recording.webm';
+            a.click();
+        };
+        
+        mediaRecorder.start();
+        
+        // Останавливаем через 30 секунд
+        setTimeout(() => mediaRecorder.stop(), 30000);
+        
+        this.showNotification('Запись началась (30 секунд)', 'info');
+    }
+
+    // 46. СКРИНШОТ
+    takeScreenshot() {
+        const canvas = document.querySelector('canvas');
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `screenshot_${Date.now()}.png`;
+        a.click();
+        
+        this.showNotification('Скриншот сохранен', 'success');
+    }
+
+    // 47. ТЕМЫ ОФОРМЛЕНИЯ
+    setTheme(themeName) {
+        const themes = {
+            dark: {
+                background: '#1e1e1e',
+                surface: '#2d2d2d',
+                primary: '#00b5ff',
+                text: '#ffffff'
+            },
+            light: {
+                background: '#f5f5f5',
+                surface: '#ffffff',
+                primary: '#0078d4',
+                text: '#000000'
+            },
+            roblox: {
+                background: '#1b2d4a',
+                surface: '#233b5e',
+                primary: '#f5c400',
+                text: '#ffffff'
+            }
+        };
+        
+        const theme = themes[themeName] || themes.dark;
+        
+        Object.entries(theme).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(`--theme-${key}`, value);
+        });
+        
+        this.theme = themeName;
+        localStorage.setItem('studio_theme', themeName);
+    }
+
+    // 48. КЛАВИАТУРНЫЕ ШОРТКАТЫ
+    initKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey) {
+                switch(e.key) {
+                    case 's':
+                        e.preventDefault();
+                        this.saveProject();
+                        break;
+                    case 'o':
+                        e.preventDefault();
+                        this.openProject();
+                        break;
+                    case 'z':
+                        e.preventDefault();
+                        this.undo();
+                        break;
+                    case 'y':
+                        e.preventDefault();
+                        this.redo();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        this.publishUpdate();
+                        break;
+                }
+            }
+        });
+    }
+
+    // 49. АВТОСОХРАНЕНИЕ
+    initAutoSave() {
+        setInterval(() => {
+            if (this.autoSave) {
+                localStorage.setItem('studio_autosave', JSON.stringify({
+                    objects: this.objects,
+                    timestamp: new Date().toISOString()
+                }));
+                
+                document.getElementById('footer-status').textContent = 'Автосохранение...';
+                setTimeout(() => {
+                    document.getElementById('footer-status').textContent = 'Готово';
+                }, 1000);
+            }
+        }, 60000); // Каждую минуту
+    }
+
+    // 50. ВОССТАНОВЛЕНИЕ ПОСЛЕ СБОЯ
+    recoverFromCrash() {
+        const autosave = localStorage.getItem('studio_autosave');
+        if (autosave) {
+            const data = JSON.parse(autosave);
+            
+            if (confirm('Найден автосохраненный проект от ' + new Date(data.timestamp).toLocaleString() + '. Восстановить?')) {
+                this.objects = data.objects;
+                this.renderScene();
+                this.showNotification('Проект восстановлен', 'success');
+            }
+        }
+    }
+
+    // ============== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==============
+
+    showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    showError(message) {
+        this.showNotification(message, 'error');
+    }
+
+    renderScene() {
+        // Перерисовка сцены
+        if (this.editor) {
+            this.editor.render();
+        }
+    }
+
+    updatePropertyPanel() {
+        // Обновление панели свойств
+    }
+}
+
+// Инициализация
+window.studio = new RobloxStudio();
