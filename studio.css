@@ -367,3 +367,459 @@ body {
         width: 100%;
     }
 }
+/* Дополнительные стили для новых функций */
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 10000;
+    animation: slideIn 0.3s;
+}
+
+.notification.success { background: #4caf50; }
+.notification.error { background: #f44336; }
+.notification.info { background: #2196f3; }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Редактор скриптов */
+.script-editor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    height: 80%;
+    background: #1e1e1e;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.script-header {
+    padding: 15px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    display: flex;
+    justify-content: space-between;
+}
+
+.script-editor-container {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+#lua-editor {
+    flex: 1;
+    background: #1a1a1a;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    padding: 15px;
+    border: none;
+    resize: none;
+}
+
+.script-output {
+    width: 300px;
+    background: #2d2d2d;
+    border-left: 1px solid #3d3d3d;
+    padding: 15px;
+    overflow-y: auto;
+    font-family: monospace;
+    color: #0f0;
+}
+
+/* Редактор террейна */
+.terrain-editor {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: #2d2d2d;
+    border-top: 2px solid #00b5ff;
+    z-index: 900;
+}
+
+.terrain-toolbar {
+    padding: 10px;
+    background: #252525;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.terrain-toolbar button,
+.terrain-toolbar select,
+.terrain-toolbar input {
+    padding: 8px 15px;
+    background: #3d3d3d;
+    border: none;
+    color: white;
+    border-radius: 5px;
+}
+
+.terrain-canvas-container {
+    height: calc(100% - 60px);
+    overflow: auto;
+}
+
+#terrain-canvas {
+    width: 1000px;
+    height: 1000px;
+    background: #1a1a1a;
+}
+
+/* Аниматор */
+.animator {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    background: #2d2d2d;
+    border-top: 2px solid #00b5ff;
+    z-index: 900;
+}
+
+.animator-timeline {
+    padding: 10px;
+}
+
+.timeline-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.timeline-controls button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #00b5ff;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#timeline-slider {
+    flex: 1;
+    height: 5px;
+}
+
+.keyframes {
+    height: 100px;
+    background: #1a1a1a;
+    position: relative;
+}
+
+.keyframe {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ff0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+}
+
+/* Библиотека ассетов */
+.asset-library {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 80%;
+    background: #2d2d2d;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.asset-item {
+    background: #3d3d3d;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.asset-item:hover {
+    transform: scale(1.05);
+    background: #00b5ff;
+}
+
+.asset-item img {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* Тестовое окно */
+.test-window {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 80%;
+    background: #1e1e1e;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+}
+
+.test-header {
+    padding: 10px;
+    background: #2d2d2d;
+    border-bottom: 1px solid #3d3d3d;
+    display: flex;
+    justify-content: space-between;
+}
+
+#roblox-player {
+    flex: 1;
+    border: none;
+}
+
+/* Аналитика */
+.analytics-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    background: #2d2d2d;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 1000;
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.analytics-card {
+    background: #3d3d3d;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.big-number {
+    font-size: 32px;
+    font-weight: 600;
+    color: #00b5ff;
+    display: block;
+    margin-top: 10px;
+}
+
+/* Версионная история */
+.version-history {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 500px;
+    max-height: 70%;
+    background: #2d2d2d;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.version-item {
+    padding: 15px;
+    background: #3d3d3d;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+}
+
+.version-item:hover {
+    background: #00b5ff;
+}
+
+/* Режим презентации */
+.presentation-mode .studio-header,
+.presentation-mode .studio-toolbar,
+.presentation-mode .sidebar,
+.presentation-mode .studio-footer {
+    display: none !important;
+}
+
+.presentation-mode .viewport {
+    width: 100% !important;
+}
+
+.presentation-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+}
+
+.presentation-controls button {
+    padding: 10px 20px;
+    margin-left: 10px;
+    background: #00b5ff;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Редактор GUI */
+.gui-editor {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 80%;
+    background: #2d2d2d;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.gui-toolbar {
+    padding: 10px;
+    background: #252525;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.gui-toolbar button {
+    padding: 8px 15px;
+    background: #3d3d3d;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.gui-canvas {
+    flex: 1;
+    background: #1a1a1a;
+    position: relative;
+    overflow: auto;
+}
+
+.gui-properties {
+    width: 250px;
+    background: #252525;
+    border-left: 1px solid #3d3d3d;
+    padding: 15px;
+}
+
+.gui-element {
+    position: absolute;
+    border: 1px solid #00b5ff;
+}
+
+.gui-element.selected {
+    border: 2px solid #ff0;
+}
+
+/* Плагин маркетплейс */
+.plugin-marketplace {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    max-height: 80%;
+    background: #2d2d2d;
+    border: 2px solid #00b5ff;
+    border-radius: 10px;
+    padding: 20px;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.plugin-item {
+    padding: 15px;
+    background: #3d3d3d;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.plugin-item button {
+    padding: 8px 15px;
+    background: #00b5ff;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .script-editor,
+    .asset-library,
+    .analytics-panel,
+    .version-history,
+    .plugin-marketplace,
+    .gui-editor {
+        width: 95%;
+        height: 95%;
+    }
+    
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .script-editor-container {
+        flex-direction: column;
+    }
+    
+    .script-output {
+        width: 100%;
+        height: 150px;
+        border-left: none;
+        border-top: 1px solid #3d3d3d;
+    }
+}
+
