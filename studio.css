@@ -1,0 +1,369 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+}
+
+body {
+    background: #1e1e1e;
+    color: #ffffff;
+    overflow: hidden;
+    height: 100vh;
+    touch-action: manipulation;
+}
+
+.container {
+    display: none;
+    width: 100%;
+    height: 100vh;
+    flex-direction: column;
+}
+
+.container.active {
+    display: flex;
+}
+
+/* Логин */
+.studio-logo {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.studio-logo img {
+    width: 80px;
+    height: 80px;
+}
+
+.studio-logo h1 {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: #00b5ff;
+    margin: 10px 0;
+}
+
+.login-form {
+    padding: 20px;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 15px;
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+}
+
+.login-form button {
+    width: 100%;
+    padding: 15px;
+    background: #00b5ff;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.captcha-container, .twofa-container {
+    margin-bottom: 15px;
+}
+
+.captcha-container img {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+/* Studio интерфейс */
+.studio-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #2d2d2d;
+    border-bottom: 2px solid #00b5ff;
+    height: 50px;
+}
+
+.header-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+.header-title {
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+}
+
+.header-user {
+    background: #00b5ff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.studio-toolbar {
+    display: flex;
+    background: #252525;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+}
+
+.toolbar-item {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+}
+
+.toolbar-item.active {
+    border-bottom-color: #00b5ff;
+    color: #00b5ff;
+}
+
+.studio-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.sidebar {
+    width: 35%;
+    max-width: 300px;
+    background: #2d2d2d;
+    border-right: 1px solid #3d3d3d;
+    overflow-y: auto;
+    display: none;
+}
+
+.sidebar.active {
+    display: block;
+}
+
+.explorer-panel, .properties-panel, .view-panel, .publish-panel {
+    display: none;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.explorer-panel.active, .properties-panel.active, .view-panel.active, .publish-panel.active {
+    display: block;
+}
+
+.panel-header {
+    padding: 12px;
+    background: #252525;
+    font-weight: 600;
+    border-bottom: 1px solid #3d3d3d;
+    display: flex;
+    justify-content: space-between;
+}
+
+.explorer-tree {
+    padding: 8px;
+}
+
+.tree-item {
+    padding: 8px 8px 8px 12px;
+    margin: 2px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.tree-item:hover {
+    background: #3d3d3d;
+}
+
+.tree-item.selected {
+    background: #00b5ff;
+    color: white;
+}
+
+.properties-content {
+    padding: 12px;
+}
+
+.property-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 5px 0;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.prop-name {
+    width: 40%;
+    font-size: 13px;
+    color: #aaa;
+}
+
+.prop-value {
+    width: 60%;
+    background: #3d3d3d;
+    border: none;
+    color: white;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.view-options {
+    display: flex;
+    padding: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.view-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 8px;
+    background: #3d3d3d;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.view-btn:active {
+    background: #00b5ff;
+}
+
+.publish-options {
+    padding: 12px;
+}
+
+.publish-btn {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #00b5ff;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #3d3d3d;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #00b5ff;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.viewport {
+    flex: 1;
+    background: #1a1a1a;
+    position: relative;
+    touch-action: none;
+}
+
+#studio-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.viewport-overlay {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    color: #888;
+    font-size: 12px;
+    text-align: right;
+}
+
+.studio-footer {
+    background: #252525;
+    padding: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #3d3d3d;
+}
+
+.footer-tabs {
+    display: flex;
+    gap: 15px;
+}
+
+.footer-tab {
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.footer-tab.active {
+    color: #00b5ff;
+    border-bottom: 2px solid #00b5ff;
+}
+
+.footer-status {
+    font-size: 12px;
+    color: #888;
+}
+
+.status {
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.status.error {
+    background: rgba(255, 0, 0, 0.2);
+    color: #ff6b6b;
+}
+
+.status.success {
+    background: rgba(0, 255, 0, 0.2);
+    color: #6bff6b;
+}
+
+/* Mobile оптимизация */
+@media (max-width: 480px) {
+    .sidebar {
+        width: 50%;
+    }
+    
+    .toolbar-item {
+        padding: 10px 12px;
+        font-size: 12px;
+    }
+    
+    .header-title {
+        font-size: 14px;
+    }
+    
+    .property-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .prop-name, .prop-value {
+        width: 100%;
+    }
+}
