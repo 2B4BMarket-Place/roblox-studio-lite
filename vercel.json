@@ -1,14 +1,46 @@
 {
   "functions": {
-    "api/*.js": {
-      "maxDuration": 10,
+    "api/roblox.js": {
+      "maxDuration": 60,
+      "memory": 1024,
       "runtime": "nodejs18.x"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/api/roblox.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, HEAD, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, X-CSRF-TOKEN, Cookie, Authorization, Accept, Origin"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
+        {
+          "key": "Access-Control-Max-Age",
+          "value": "86400"
+        }
+      ]
     }
   ],
   "builds": [
@@ -25,35 +57,14 @@
       "use": "@vercel/static"
     },
     {
-      "src": "*.png",
+      "src": "images/**/*",
       "use": "@vercel/static"
     },
     {
-      "src": "api/index.js",
+      "src": "api/roblox.js",
       "use": "@vercel/node"
     }
   ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, X-CSRF-TOKEN, Cookie, Authorization"
-        },
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        }
-      ]
-    }
-  ]
+  "cleanUrls": true,
+  "trailingSlash": false
 }
