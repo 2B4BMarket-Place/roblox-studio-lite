@@ -1,15 +1,31 @@
 {
   "name": "roblox-studio-mobile",
-  "version": "1.0.0",
-  "description": "Roblox Studio для мобильных устройств",
-  "main": "api.js",
+  "version": "2.0.0",
+  "description": "Полноценная Roblox Studio для мобильных устройств",
+  "main": "api/roblox.js",
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod"
+    "build": "echo 'Static site build complete'",
+    "start": "vercel start",
+    "deploy": "vercel --prod",
+    "logs": "vercel logs"
   },
   "dependencies": {
-    "node-fetch": "^2.6.7",
+    "node-fetch": "^2.7.0",
     "compression": "^1.7.4",
-    "express": "^4.18.2"
-  }
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "rate-limit": "^2.1.1"
+  },
+  "devDependencies": {
+    "vercel": "^32.5.0",
+    "@vercel/node": "^3.0.0"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "keywords": ["roblox", "studio", "mobile", "game-dev"],
+  "author": "Swill Way",
+  "license": "MIT"
 }
