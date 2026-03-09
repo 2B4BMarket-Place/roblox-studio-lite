@@ -1,6 +1,8 @@
-// studio.js - Реальное взаимодействие с Roblox API
+// studio.js v3.0 - Мега-функциональная версия
+
 class RobloxStudio {
     constructor() {
+        this.version = '3.0.0';
         this.user = null;
         this.cookie = null;
         this.xcsrf = null;
@@ -9,420 +11,626 @@ class RobloxStudio {
         this.selectedObject = null;
         this.universeId = null;
         this.placeId = null;
+        this.teamCreate = false;
+        this.autoSave = true;
+        this.plugins = [];
+        this.theme = 'dark';
+        this.recentFiles = [];
+        this.templates = [];
+        this.assets = [];
+        this.scripts = {};
+        this.terrain = {};
+        this.animations = [];
+        this.sounds = [];
+        this.lighting = {};
+        this.camera = { mode: 'perspective' };
+        this.grid = { size: 4, opacity: 0.5 };
         
         this.initEventListeners();
-        this.checkExistingSession();
+        this.loadPlugins();
+        this.initAutoSave();
     }
 
-    async initEventListeners() {
-        document.getElementById('login-btn').addEventListener('click', () => this.login());
-        document.getElementById('publish-new').addEventListener('click', () => this.publishNewGame());
-        document.getElementById('publish-existing').addEventListener('click', () => this.publishExisting());
-        document.getElementById('load-rbxl').addEventListener('click', () => document.getElementById('rbxl-file-input').click());
-        document.getElementById('rbxl-file-input').addEventListener('change', (e) => this.loadRBXLFile(e));
-        
-        // Табы интерфейса
-        document.querySelectorAll('.toolbar-item').forEach(item => {
-            item.addEventListener('click', (e) => this.switchPanel(e.target.dataset.tab));
-        });
+    // ============== НОВЫЕ ФУНКЦИИ ==============
 
-        // Explorer взаимодействие
-        document.querySelectorAll('.tree-item').forEach(item => {
-            item.addEventListener('click', (e) => this.selectObject(e.target));
-        });
-
-        // Свойства
-        document.getElementById('prop-name').addEventListener('change', (e) => this.updateProperty('Name', e.target.value));
-        document.getElementById('prop-position').addEventListener('change', (e) => this.updateProperty('Position', e.target.value));
-        document.getElementById('prop-size').addEventListener('change', (e) => this.updateProperty('Size', e.target.value));
-        document.getElementById('prop-color').addEventListener('change', (e) => this.updateProperty('Color', e.target.value));
-        document.getElementById('prop-material').addEventListener('change', (e) => this.updateProperty('Material', e.target.value));
-        
-        document.getElementById('refresh-explorer').addEventListener('click', () => this.refreshExplorer());
-    }
-
-    async login() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        
-        if (!username || !password) {
-            this.showStatus('Введите логин и пароль', 'error');
-            return;
-        }
-
-        this.showStatus('Подключение к Roblox...', 'info');
-
+    // 1. ИМПОРТ ИГР ПОЛЬЗОВАТЕЛЯ
+    async importUserGames() {
         try {
-            // ШАГ 1: Получение CSRF токена
-            const csrfResponse = await fetch('https://auth.roblox.com/v2/logout', {
-                method: 'POST',
-                credentials: 'include'
+            const response = await fetch('/api/users/v1/users/authenticated/games', {
+                headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+            });
+            const games = await response.json();
+            
+            games.data.forEach(game => {
+                this.addToLibrary(game);
             });
             
-            const csrfToken = csrfResponse.headers.get('x-csrf-token');
+            this.showNotification(`Загружено ${games.data.length} игр`, 'success');
+        } catch (error) {
+            this.showError('Ошибка загрузки игр: ' + error.message);
+        }
+    }
+
+    // 2. РЕДАКТИРОВАНИЕ СУЩЕСТВУЮЩЕЙ ИГРЫ
+    async editExistingGame(universeId, placeId) {
+        try {
+            const response = await fetch(`/api/assetdelivery/v1/asset?id=${placeId}`, {
+                headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+            });
             
-            // ШАГ 2: Реальный вход в Roblox
-            const loginResponse = await fetch('https://auth.roblox.com/v2/login', {
+            const rbxlData = await response.arrayBuffer();
+            this.parseRBXLFile(rbxlData);
+            this.currentUniverseId = universeId;
+            this.currentPlaceId = placeId;
+            
+            this.showNotification('Игра загружена для редактирования', 'success');
+        } catch (error) {
+            this.showError('Ошибка загрузки игры: ' + error.message);
+        }
+    }
+
+    // 3. КЛОНИРОВАНИЕ ИГРЫ
+    async cloneGame(universeId, newName) {
+        try {
+            const response = await fetch('/api/apis/universes/v1/universes/' + universeId + '/clone', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': this.xcsrf,
+                    'Cookie': `.ROBLOSECURITY=${this.cookie}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: newName })
+            });
+            
+            const clone = await response.json();
+            this.showNotification('Игра склонирована', 'success');
+            return clone;
+        } catch (error) {
+            this.showError('Ошибка клонирования: ' + error.message);
+        }
+    }
+
+    // 4. ЭКСПОРТ В .RBXL
+    exportToRBXL() {
+        const rbxlData = this.generateRBXLFromScene();
+        const blob = new Blob([rbxlData], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'game.rbxl';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        this.showNotification('Файл сохранен', 'success');
+    }
+
+    // 5. ЗАГРУЗКА RBXL ИЗ URL
+    async loadRBXLFromUrl(url) {
+        try {
+            const response = await fetch(url);
+            const data = await response.arrayBuffer();
+            this.parseRBXLFile(data);
+            this.showNotification('Файл загружен из URL', 'success');
+        } catch (error) {
+            this.showError('Ошибка загрузки: ' + error.message);
+        }
+    }
+
+    // 6. TEAM CREATE (СОВМЕСТНОЕ РЕДАКТИРОВАНИЕ)
+    enableTeamCreate() {
+        this.teamCreate = true;
+        this.ws = new WebSocket('wss://apis.roblox.com/team-create/v1/universes/' + this.universeId);
+        
+        this.ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            this.handleTeamCreateUpdate(data);
+        };
+        
+        this.showNotification('Team Create включен', 'info');
+    }
+
+    // 7. РЕДАКТОР ТЕРРЕЙНА
+    openTerrainEditor() {
+        const editor = document.createElement('div');
+        editor.className = 'terrain-editor';
+        editor.innerHTML = `
+            <div class="terrain-toolbar">
+                <button onclick="studio.terrainTool('add')">➕ Добавить</button>
+                <button onclick="studio.terrainTool('remove')">➖ Удалить</button>
+                <button onclick="studio.terrainTool('smooth')">🌀 Сгладить</button>
+                <select onchange="studio.terrainMaterial(this.value)">
+                    <option value="Grass">Трава</option>
+                    <option value="Sand">Песок</option>
+                    <option value="Rock">Камень</option>
+                    <option value="Snow">Снег</option>
+                    <option value="Water">Вода</option>
+                </select>
+                <input type="range" min="1" max="10" value="3" onchange="studio.terrainBrushSize(this.value)">
+            </div>
+            <div class="terrain-canvas-container">
+                <canvas id="terrain-canvas"></canvas>
+            </div>
+        `;
+        document.body.appendChild(editor);
+    }
+
+    // 8. ГЕНЕРАЦИЯ ПРОЦЕДУРНОГО ЛАНДШАФТА
+    generateProceduralTerrain(width = 100, height = 100) {
+        for (let x = 0; x < width; x++) {
+            for (let z = 0; z < height; z++) {
+                const y = Math.floor(
+                    Math.sin(x * 0.1) * Math.cos(z * 0.1) * 10 +
+                    Math.sin(x * 0.05) * 5 +
+                    Math.random() * 2
+                );
+                
+                this.setVoxel(x - width/2, y, z - height/2, 'Grass');
+            }
+        }
+        
+        this.renderScene();
+        this.showNotification('Ландшафт сгенерирован', 'success');
+    }
+
+    // 9. РЕДАКТОР СКРИПТОВ С ПОДСВЕТКОЙ
+    openScriptEditor(scriptPath, content) {
+        const editor = document.createElement('div');
+        editor.className = 'script-editor';
+        editor.innerHTML = `
+            <div class="script-header">
+                <span>📝 ${scriptPath}</span>
+                <div>
+                    <button onclick="studio.saveScript()">💾 Сохранить</button>
+                    <button onclick="studio.runScript()">▶ Запустить</button>
+                    <button onclick="studio.testScript()">🧪 Тест</button>
+                    <button onclick="studio.closeEditor()">✖</button>
+                </div>
+            </div>
+            <div class="script-editor-container">
+                <textarea id="lua-editor" spellcheck="false">${content || ''}</textarea>
+                <div class="script-output" id="script-output"></div>
+            </div>
+        `;
+        
+        document.body.appendChild(editor);
+        
+        // Добавляем подсветку синтаксиса
+        this.initSyntaxHighlighting();
+    }
+
+    // 10. ЗАПУСК СКРИПТА НА СЕРВЕРЕ
+    async runScript(scriptContent) {
+        try {
+            const response = await fetch('/api/apis/cloud/v2/scripts/execute', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Referer': 'https://www.roblox.com/'
+                    'X-CSRF-TOKEN': this.xcsrf,
+                    'Cookie': `.ROBLOSECURITY=${this.cookie}`
                 },
                 body: JSON.stringify({
-                    ctype: 'Username',
-                    cvalue: username,
-                    password: password,
-                    captchaToken: window.captchaToken || null,
-                    captchaProvider: window.captchaProvider || null
-                }),
-                credentials: 'include'
+                    script: scriptContent,
+                    placeId: this.currentPlaceId
+                })
             });
+            
+            const result = await response.json();
+            document.getElementById('script-output').innerHTML = result.output || 'Выполнено';
+        } catch (error) {
+            this.showError('Ошибка выполнения: ' + error.message);
+        }
+    }
 
-            const loginData = await loginResponse.json();
+    // 11. АНИМАТОР
+    openAnimator() {
+        const animator = document.createElement('div');
+        animator.className = 'animator';
+        animator.innerHTML = `
+            <div class="animator-timeline">
+                <div class="timeline-controls">
+                    <button onclick="studio.playAnimation()">▶</button>
+                    <button onclick="studio.stopAnimation()">⏹</button>
+                    <button onclick="studio.recordAnimation()">⚫</button>
+                    <input type="range" min="0" max="100" value="0" id="timeline-slider">
+                </div>
+                <div class="keyframes" id="keyframes"></div>
+            </div>
+            <div class="animator-properties">
+                <select onchange="studio.animationProperty('easing', this.value)">
+                    <option>Linear</option>
+                    <option>EaseIn</option>
+                    <option>EaseOut</option>
+                    <option>Bounce</option>
+                </select>
+                <input type="number" placeholder="Длительность (сек)" onchange="studio.animationDuration(this.value)">
+            </div>
+        `;
+        document.body.appendChild(animator);
+    }
 
-            if (loginResponse.status === 403 && loginData.errors && loginData.errors[0].code === 0) {
-                // Требуется капча
-                this.handleCaptcha(loginData.errors[0].fieldData);
-                return;
-            }
+    // 12. ЗАПИСЬ АНИМАЦИИ
+    recordAnimation() {
+        this.recording = true;
+        this.keyframes = [];
+        this.recordStartTime = Date.now();
+        
+        const recordFrame = () => {
+            if (!this.recording) return;
+            
+            this.keyframes.push({
+                time: Date.now() - this.recordStartTime,
+                objects: JSON.parse(JSON.stringify(this.objects))
+            });
+            
+            requestAnimationFrame(recordFrame);
+        };
+        
+        recordFrame();
+    }
 
-            if (loginResponse.status === 401) {
-                this.showStatus('Неверный логин или пароль', 'error');
-                return;
-            }
+    // 13. ЭКСПОРТ АНИМАЦИИ
+    exportAnimation() {
+        const animationData = {
+            keyframes: this.keyframes,
+            duration: this.keyframes[this.keyframes.length - 1].time,
+            objects: this.objects.map(obj => obj.type)
+        };
+        
+        const blob = new Blob([JSON.stringify(animationData)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'animation.rbxm';
+        a.click();
+    }
 
-            if (loginResponse.status === 200) {
-                // Успешный вход - получаем куки
-                this.cookie = document.cookie.split('; ').find(row => row.startsWith('.ROBLOSECURITY='));
-                if (this.cookie) {
-                    this.cookie = this.cookie.split('=')[1];
-                    await this.getAuthenticatedUser();
-                    this.showStudio();
-                }
+    // 14. ЗВУКОВОЙ РЕДАКТОР
+    openSoundEditor() {
+        const editor = document.createElement('div');
+        editor.className = 'sound-editor';
+        editor.innerHTML = `
+            <div class="sound-list">
+                ${this.sounds.map((sound, i) => `
+                    <div class="sound-item" onclick="studio.playSound(${i})">
+                        🔊 ${sound.name}
+                        <button onclick="studio.editSound(${i})">✎</button>
+                        <button onclick="studio.deleteSound(${i})">✖</button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="sound-controls">
+                <input type="file" accept="audio/*" onchange="studio.importSound(this)">
+                <button onclick="studio.recordSound()">🎤 Записать</button>
+            </div>
+        `;
+        document.body.appendChild(editor);
+    }
+
+    // 15. ЗАПИСЬ ЗВУКА
+    async recordSound() {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+        
+        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            this.importSoundFromBlob(blob, 'recorded_sound.webm');
+        };
+        
+        mediaRecorder.start();
+        
+        setTimeout(() => mediaRecorder.stop(), 5000); // 5 секунд записи
+    }
+
+    // 16. БИБЛИОТЕКА АССЕТОВ
+    async openAssetLibrary() {
+        try {
+            const response = await fetch('/api/catalog/v1/search/items?category=All&limit=30', {
+                headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+            });
+            
+            const assets = await response.json();
+            
+            const library = document.createElement('div');
+            library.className = 'asset-library';
+            library.innerHTML = `
+                <div class="asset-grid">
+                    ${assets.data.map(asset => `
+                        <div class="asset-item" onclick="studio.importAsset('${asset.id}')">
+                            <img src="https://www.roblox.com/asset-thumbnail/image?assetId=${asset.id}&width=150&height=150">
+                            <span>${asset.name}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            document.body.appendChild(library);
+        } catch (error) {
+            this.showError('Ошибка загрузки библиотеки: ' + error.message);
+        }
+    }
+
+    // 17. ИМПОРТ АССЕТА
+    async importAsset(assetId) {
+        try {
+            const response = await fetch(`/api/assetdelivery/v1/asset?id=${assetId}`, {
+                headers: { 'Cookie': `.ROBLOSECURITY=${this.cookie}` }
+            });
+            
+            const data = await response.arrayBuffer();
+            
+            if (assetId.includes('rbxm')) {
+                this.importModel(data);
+            } else if (assetId.includes('rbxl')) {
+                this.importPlace(data);
             } else {
-                // Проверка на двухфакторную аутентификацию
-                if (loginData.errors && loginData.errors[0].code === 2) {
-                    this.handleTwoFactor();
-                    return;
-                }
-                this.showStatus('Ошибка входа: ' + (loginData.errors ? loginData.errors[0].message : 'Неизвестная ошибка'), 'error');
+                this.importMesh(data);
+            }
+            
+            this.showNotification('Ассет импортирован', 'success');
+        } catch (error) {
+            this.showError('Ошибка импорта: ' + error.message);
+        }
+    }
+
+    // 18. ТЕСТИРОВАНИЕ ИГРЫ
+    async testGame() {
+        // Создаем iframe с Roblox Player
+        const testWindow = document.createElement('div');
+        testWindow.className = 'test-window';
+        testWindow.innerHTML = `
+            <div class="test-header">
+                <span>Тестирование игры</span>
+                <button onclick="studio.stopTest()">✖</button>
+            </div>
+            <iframe id="roblox-player" src="https://www.roblox.com/games/start?placeId=${this.currentPlaceId}"></iframe>
+        `;
+        
+        document.body.appendChild(testWindow);
+    }
+
+    // 19. ПУБЛИКАЦИЯ ОБНОВЛЕНИЙ
+    async publishUpdate() {
+        try {
+            const rbxlData = this.generateRBXLFromScene();
+            
+            const response = await fetch(`/api/apis/universes/v1/${this.universeId}/places/${this.placeId}/content`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'X-CSRF-TOKEN': this.xcsrf,
+                    'Cookie': `.ROBLOSECURITY=${this.cookie}`
+                },
+                body: rbxlData
+            });
+            
+            if (response.ok) {
+                this.showNotification('Обновление опубликовано!', 'success');
             }
         } catch (error) {
-            this.showStatus('Ошибка сети: ' + error.message, 'error');
+            this.showError('Ошибка публикации: ' + error.message);
         }
     }
 
-    async getAuthenticatedUser() {
-        const response = await fetch('https://users.roblox.com/v1/users/authenticated', {
-            headers: {
-                'Cookie': `.ROBLOSECURITY=${this.cookie}`
-            }
-        });
-        
-        this.user = await response.json();
-        document.getElementById('header-user').textContent = this.user.name;
-        
-        // Получаем XCSRF токен для операций
-        await this.getXCSRFToken();
-    }
-
-    async getXCSRFToken() {
-        const response = await fetch('https://auth.roblox.com/v2/logout', {
-            method: 'POST',
-            headers: {
-                'Cookie': `.ROBLOSECURITY=${this.cookie}`
-            }
-        });
-        
-        this.xcsrf = response.headers.get('x-csrf-token');
-    }
-
-    handleCaptcha(fieldData) {
-        document.getElementById('captcha-container').style.display = 'block';
-        document.getElementById('captcha-image').src = fieldData.captchaImageUrl;
-        
-        window.captchaToken = null;
-        window.captchaProvider = fieldData.captchaProvider;
-        
-        document.getElementById('captcha-input').onchange = (e) => {
-            window.captchaToken = e.target.value;
-            this.login(); // Повторная попытка с капчей
+    // 20. СОЗДАНИЕ ШАБЛОНА
+    saveAsTemplate(name) {
+        const template = {
+            name: name,
+            objects: this.objects,
+            lighting: this.lighting,
+            date: new Date().toISOString()
         };
-    }
-
-    handleTwoFactor() {
-        document.getElementById('twofa-container').style.display = 'block';
-        document.getElementById('twofa-input').onchange = (e) => {
-            // Здесь должна быть логика для 2FA
-            this.loginWithTwoFactor(e.target.value);
-        };
-    }
-
-    async publishNewGame() {
-        if (!this.user) return;
-
-        // Создание нового места на Roblox
-        const createResponse = await fetch('https://apis.roblox.com/universes/v1/universes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': this.xcsrf,
-                'Cookie': `.ROBLOSECURITY=${this.cookie}`
-            },
-            body: JSON.stringify({
-                name: 'Mobile Studio Game ' + new Date().toLocaleString(),
-                description: 'Created with Roblox Studio Mobile'
-            })
-        });
-
-        const universe = await createResponse.json();
-        this.universeId = universe.universeId;
-
-        // Создание стартового места
-        const placeResponse = await fetch(`https://apis.roblox.com/universes/v1/universes/${this.universeId}/places`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': this.xcsrf,
-                'Cookie': `.ROBLOSECURITY=${this.cookie}`
-            },
-            body: JSON.stringify({
-                name: 'Baseplate',
-                description: 'Baseplate place'
-            })
-        });
-
-        const place = await placeResponse.json();
-        this.placeId = place.placeId;
-
-        // Загрузка реального rbxl файла
-        await this.uploadToRoblox(this.placeId);
-    }
-
-    async uploadToRoblox(placeId) {
-        // Конвертация текущей сцены в бинарный rbxl
-        const rbxlData = this.generateRBXLFromScene();
         
-        // Загрузка через Roblox API
-        const uploadResponse = await fetch(`https://apis.roblox.com/universes/v1/${this.universeId}/places/${placeId}/content`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/octet-stream',
-                'X-CSRF-TOKEN': this.xcsrf,
-                'Cookie': `.ROBLOSECURITY=${this.cookie}`
-            },
-            body: rbxlData
-        });
+        this.templates.push(template);
+        localStorage.setItem('studio_templates', JSON.stringify(this.templates));
+        this.showNotification('Шаблон сохранен', 'success');
+    }
 
-        if (uploadResponse.ok) {
-            this.showStatus('Игра успешно опубликована!', 'success');
-            document.getElementById('progress-fill').style.width = '100%';
+    // 21. ЗАГРУЗКА ШАБЛОНА
+    loadTemplate(templateName) {
+        const template = this.templates.find(t => t.name === templateName);
+        if (template) {
+            this.objects = template.objects;
+            this.lighting = template.lighting;
+            this.renderScene();
+            this.showNotification('Шаблон загружен', 'success');
         }
     }
 
-    generateRBXLFromScene() {
-        // Генерация реального бинарного .rbxl файла
-        const encoder = new TextEncoder();
-        
-        // Заголовок .rbxl файла
-        const header = new Uint8Array([
-            0x3C, 0x72, 0x6F, 0x62, 0x6C, 0x6F, 0x78, 0x21, // <roblox!
-            0x20, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, //  version
-            0x3D, 0x22, 0x30, 0x2E, 0x34, 0x2E, 0x32, 0x22 // ="0.4.2"
-        ]);
-
-        const chunks = [header];
-        
-        // Добавляем объекты из сцены
-        this.objects.forEach(obj => {
-            chunks.push(this.objectToRBXLChunk(obj));
-        });
-
-        // Объединяем все части
-        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-        const result = new Uint8Array(totalLength);
-        let offset = 0;
-        
-        chunks.forEach(chunk => {
-            result.set(chunk, offset);
-            offset += chunk.length;
-        });
-
-        return result;
-    }
-
-    objectToRBXLChunk(obj) {
-        // Реальное кодирование объекта в формат Roblox
-        const properties = [];
-        
-        if (obj.name) properties.push(`name "${obj.name}"`);
-        if (obj.position) properties.push(`Position ${obj.position.x} ${obj.position.y} ${obj.position.z}`);
-        if (obj.size) properties.push(`Size ${obj.size.x} ${obj.size.y} ${obj.size.z}`);
-        if (obj.color) {
-            const rgb = this.hexToRgb(obj.color);
-            properties.push(`Color3 ${rgb.r/255} ${rgb.g/255} ${rgb.b/255}`);
+    // 22. ЭКСПОРТ В ДРУГИЕ ФОРМАТЫ
+    exportToFormat(format) {
+        switch(format) {
+            case 'obj':
+                return this.exportToOBJ();
+            case 'fbx':
+                return this.exportToFBX();
+            case 'gltf':
+                return this.exportToGLTF();
+            case 'stl':
+                return this.exportToSTL();
         }
-
-        const chunkString = `Instance "${obj.type}" {${properties.join(';')}}`;
-        return encoder.encode(chunkString);
     }
 
-    hexToRgb(hex) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return {r, g, b};
-    }
-
-    loadRBXLFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const rbxlData = new Uint8Array(e.target.result);
-            this.parseRBXLFile(rbxlData);
-        };
-        reader.readAsArrayBuffer(file);
-    }
-
-    parseRBXLFile(data) {
-        // Реальный парсинг .rbxl файла
-        const decoder = new TextDecoder('utf-8');
-        const content = decoder.decode(data);
+    // 23. ЭКСПОРТ В OBJ
+    exportToOBJ() {
+        let objData = '# Roblox Studio Mobile Export\n';
         
-        // Простой парсинг для демонстрации
-        const instances = content.match(/Instance "([^"]+)" {([^}]+)}/g);
-        
-        if (instances) {
-            this.objects = [];
-            instances.forEach(instance => {
-                const typeMatch = instance.match(/Instance "([^"]+)"/);
-                const propsMatch = instance.match(/{([^}]+)}/);
-                
-                if (typeMatch && propsMatch) {
-                    const obj = {
-                        type: typeMatch[1],
-                        properties: {}
-                    };
-                    
-                    propsMatch[1].split(';').forEach(prop => {
-                        const parts = prop.trim().split(' ');
-                        if (parts.length > 1) {
-                            obj.properties[parts[0]] = parts.slice(1).join(' ');
-                        }
-                    });
-                    
-                    this.objects.push(obj);
-                }
+        this.objects.forEach((obj, i) => {
+            objData += `o Object_${i}\n`;
+            
+            // Вершины
+            const vertices = this.getObjectVertices(obj);
+            vertices.forEach(v => {
+                objData += `v ${v.x} ${v.y} ${v.z}\n`;
             });
             
-            this.refreshExplorer();
-            this.showStatus(`Загружено ${this.objects.length} объектов`, 'success');
+            // Грани
+            objData += 'f 1 2 3 4\n';
+            objData += 'f 5 6 7 8\n';
+        });
+        
+        const blob = new Blob([objData], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'model.obj';
+        a.click();
+    }
+
+    // 24. НАСТРОЙКИ ОСВЕЩЕНИЯ
+    setLighting(properties) {
+        this.lighting = { ...this.lighting, ...properties };
+        
+        // Применяем настройки
+        Object.entries(properties).forEach(([key, value]) => {
+            document.documentElement.style.setProperty(`--lighting-${key}`, value);
+        });
+        
+        this.renderScene();
+    }
+
+    // 25. ФИЗИЧЕСКИЕ СВОЙСТВА
+    setPhysicsProperties(objectId, properties) {
+        const obj = this.objects.find(o => o.id === objectId);
+        if (obj) {
+            obj.physics = {
+                mass: properties.mass || 1,
+                friction: properties.friction || 0.3,
+                elasticity: properties.elasticity || 0.5,
+                anchored: properties.anchored || false,
+                canCollide: properties.canCollide || true
+            };
+            
+            this.updatePropertyPanel();
         }
     }
 
-    showStudio() {
-        document.getElementById('login-container').classList.remove('active');
-        document.getElementById('studio-container').classList.add('active');
-        this.initCanvas();
-    }
-
-    initCanvas() {
-        const canvas = document.getElementById('studio-canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Простая отрисовка 3D сцены
-        const render = () => {
-            ctx.fillStyle = '#2d2d2d';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Отрисовка сетки
-            ctx.strokeStyle = '#404040';
-            ctx.lineWidth = 1;
-            
-            const gridSize = 20;
-            const spacing = 30;
-            
-            for (let i = -gridSize; i <= gridSize; i++) {
-                ctx.beginPath();
-                ctx.moveTo(canvas.width/2 + i*spacing, 0);
-                ctx.lineTo(canvas.width/2 + i*spacing, canvas.height);
-                ctx.strokeStyle = '#404040';
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.moveTo(0, canvas.height/2 + i*spacing);
-                ctx.lineTo(canvas.width, canvas.height/2 + i*spacing);
-                ctx.stroke();
-            }
-            
-            // Отрисовка объектов
+    // 26. СИМУЛЯЦИЯ ФИЗИКИ
+    startPhysicsSimulation() {
+        this.physicsInterval = setInterval(() => {
             this.objects.forEach(obj => {
-                if (obj.type === 'Part') {
-                    const x = canvas.width/2 + (obj.properties.Position?.split(' ')[0] || 0) * 10;
-                    const y = canvas.height/2 + (obj.properties.Position?.split(' ')[1] || 0) * 10;
+                if (obj.physics && !obj.physics.anchored) {
+                    // Простая гравитация
+                    obj.position.y -= 0.1 * obj.physics.mass;
                     
-                    ctx.fillStyle = obj.properties.Color3 || '#ff0000';
-                    ctx.fillRect(x - 10, y - 10, 20, 20);
+                    // Столкновения с землей
+                    if (obj.position.y < 0) {
+                        obj.position.y = 0;
+                    }
                 }
             });
             
-            requestAnimationFrame(render);
+            this.renderScene();
+        }, 50);
+    }
+
+    // 27. СОЗДАНИЕ GUI
+    createGUI() {
+        const gui = {
+            type: 'ScreenGui',
+            elements: []
         };
         
-        render();
+        const editor = document.createElement('div');
+        editor.className = 'gui-editor';
+        editor.innerHTML = `
+            <div class="gui-toolbar">
+                <button onclick="studio.addGUIElement('Frame')">📦 Frame</button>
+                <button onclick="studio.addGUIElement('Button')">🔘 Button</button>
+                <button onclick="studio.addGUIElement('TextLabel')">📝 Text</button>
+                <button onclick="studio.addGUIElement('ImageLabel')">🖼️ Image</button>
+                <button onclick="studio.addGUIElement('TextBox')">⌨️ TextBox</button>
+            </div>
+            <div class="gui-canvas" id="gui-canvas"></div>
+            <div class="gui-properties" id="gui-properties"></div>
+        `;
+        
+        document.body.appendChild(editor);
+        this.currentGUI = gui;
     }
 
-    switchPanel(tab) {
-        document.querySelectorAll('.explorer-panel, .properties-panel, .view-panel, .publish-panel').forEach(p => {
-            p.classList.remove('active');
+    // 28. ПРЕВЬЮ GUI
+    previewGUI() {
+        const preview = document.createElement('div');
+        preview.className = 'gui-preview';
+        preview.style.position = 'fixed';
+        preview.style.top = '0';
+        preview.style.left = '0';
+        preview.style.width = '100%';
+        preview.style.height = '100%';
+        preview.style.pointerEvents = 'none';
+        preview.style.zIndex = '9999';
+        
+        this.currentGUI.elements.forEach(element => {
+            const el = document.createElement('div');
+            el.className = 'gui-element gui-' + element.type;
+            el.style.position = 'absolute';
+            el.style.left = element.position?.x + 'px';
+            el.style.top = element.position?.y + 'px';
+            el.style.width = element.size?.x + 'px';
+            el.style.height = element.size?.y + 'px';
+            el.style.backgroundColor = element.backgroundColor;
+            el.style.color = element.textColor;
+            el.textContent = element.text;
+            
+            preview.appendChild(el);
         });
         
-        document.getElementById(`${tab}-panel`).classList.add('active');
+        document.body.appendChild(preview);
     }
 
-    selectObject(element) {
-        this.selectedObject = element;
-        // Загрузка свойств объекта
-        document.getElementById('prop-name').value = element.textContent.replace(/[^a-zA-Z0-9]/g, '');
-    }
-
-    updateProperty(prop, value) {
-        if (this.selectedObject) {
-            this.selectedObject.dataset[prop] = value;
+    // 29. ПЛАГИНЫ
+    loadPlugins() {
+        const plugins = localStorage.getItem('studio_plugins');
+        if (plugins) {
+            this.plugins = JSON.parse(plugins);
+            
+            this.plugins.forEach(plugin => {
+                try {
+                    eval(plugin.code);
+                } catch (e) {
+                    console.error('Plugin error:', e);
+                }
+            });
         }
     }
 
-    refreshExplorer() {
-        // Обновление дерева объектов
-        const tree = document.getElementById('explorer-tree');
-        tree.innerHTML = '<div class="tree-item" data-type="game">⏺ Game</div>';
-        
-        this.objects.forEach(obj => {
-            const item = document.createElement('div');
-            item.className = 'tree-item';
-            item.style.paddingLeft = '20px';
-            item.dataset.type = obj.type.toLowerCase();
-            item.textContent = `📁 ${obj.type}`;
-            tree.appendChild(item);
-        });
+    // 30. УСТАНОВКА ПЛАГИНА
+    installPlugin(url) {
+        fetch(url)
+            .then(response => response.text())
+            .then(code => {
+                this.plugins.push({
+                    name: 'Plugin ' + (this.plugins.length + 1),
+                    code: code,
+                    installed: new Date().toISOString()
+                });
+                
+                localStorage.setItem('studio_plugins', JSON.stringify(this.plugins));
+                eval(code);
+                this.showNotification('Плагин установлен', 'success');
+            });
     }
 
-    showStatus(message, type) {
-        const statusEl = document.getElementById('login-status');
-        if (statusEl) {
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + type;
-        }
-        
-        const footerStatus = document.getElementById('footer-status');
-        if (footerStatus) {
-            footerStatus.textContent = message;
-        }
-    }
-}
-
-// Запуск приложения
-new RobloxStudio();
+    // 31. МАРКЕТПЛЕЙС ПЛАГИНОВ
+    openPluginMarketplace() {
+        const marketplace = document.createElement('div');
+        marketplace.className = 'plugin-marketplace';
+        marketplace.innerHTML = `
+            <h3>Магазин плагинов</h3>
+            <div class="plugin-list">
+                <div class="plugin-item">
+                    <h4>Build Tools</h4>
+                    <p>Продвинутые инструменты для строительства</p>
+                    <button onclick="studio.installPlugin('https://example.com/plugins/build-tools.js')">Установить</button>
+                </div>
+                <div class="plugin-item">
+                    <h4>Terrain Generator Pro</h4>
+                    <p>Процедурная генерация ландшафта</p>
+                    <button onclick="studio.installPlugin('https://example.com/plugins/terrain-pro.js')">Установить</button>
+                </div>
+            </
